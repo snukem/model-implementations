@@ -60,7 +60,7 @@ class KNNClassifier:
         distances = [np.linalg.norm(x - x_train) for x_train in self.X_train]
         return distances
 
-    def predict(self, X, f: function = None):
+    def predict(self, X):
         """Make predictions for new data
 
         For each new observation in 'X', predict class membership based on the most common
@@ -73,13 +73,10 @@ class KNNClassifier:
         """
 
         # helper function to predict for a single observation
-        def _predict_single(self, x, f: function = None):
-            # if no user-defined distance function is given, use Euclidean distance
-            if not f:
-                f = self._f_dist
+        def _predict_single(x):
 
             # calculate the distances for each training observation
-            distances = self.f(x)
+            distances = self._f_dist(x)
             
             # sort the training observations by distance
             knn_indices = np.argsort(distances)[:self.k]
@@ -95,5 +92,5 @@ class KNNClassifier:
             return predicted_class
 
         # Make a prediction for all new observations
-        y_pred = [_predict_single(x, f) for x in X]
+        y_pred = [_predict_single(x) for x in X]
         return np.array(y_pred)
