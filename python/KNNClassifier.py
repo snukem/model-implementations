@@ -1,18 +1,17 @@
-import numpy as np
-
-'''
+"""
 Python implementation of the K-Nearest Neighbor (KNN) algorithm for classification.
 The KNN classifier predicts the class of a given test observation by identifying 
 training observations that are nearest to it in features space, as defined by some
 valid distance function. The relative scale of each feature matters. 
-'''
+"""
+import numpy as np
 
 class KNNClassifier:
-    def __init__(self, k: int = 1):
+    def __init__(self, k = 1):
         """Constructor for KNNClassifier object.
 
         Args:
-            k: Calculate distances to each of 'k' nearest neighbors in feature space.
+            k (int): Calculate distances to each of 'k' nearest neighbors in feature space.
 
         Raises:
             ValueError: If the provided 'k' is not positive.
@@ -39,22 +38,62 @@ class KNNClassifier:
 
         Raises:
             ValueError: If tuning parameter 'k' is larger than number of observations.
+            TypeError: If 'y' has only one dimension it is certainly not one-hot encoded appropriately.
         """
         if self.k > X.shape[0]:
             raise ValueError("Tuning parameter 'k' must be not be greater than number of observations.")
         
+        if y.shape[1] < 2:
+            raise TypeError("Response data 'y' should be encoded as array of 0s and 1s based on class membership.")
+        
         self.X_train = X
         self.y_train = y
 
-    def f_dist(x1, x2):
-        # Euclidean distance between x1 and x2
-        pass
+    def _f_dist(self, x):
+        """Base Euclidean distance function
 
-    def predict(self, X_test, y_test, f: function = None):
-        # fit the model
+        The distance between each observation in X_train and the observation 'x' is calculated.
+       
+        Args:
+            x (numeric array): New observation existing in training data feature space.
+        """
+        distances = [np.linalg.norm(x - x_train) for x_train in self.X_train]
+        return distances
 
-        # if f then use it as user-defined distance function 
-        # else use f_dist
+    def predict(self, X, f: function = None):
+        """Make predictions for new data
 
-        # Make a prediction for new observations
-        pass
+        For each new observation in 'X', predict class membership based on the most common
+        membership of its 'k' nearest neighbors, where nearness is measured by a distance
+        function f. If this function is not supplied, Euclidean Distance is used.
+
+        Args:
+            X (numeric array): (m x p) Predictive features for each of 'm' new observations.
+            f (callable): Valid distance function, or 'None'.
+        """
+
+        # helper function to predict for a single observation
+        def _predict_single(self, x, f: function = None):
+            # if no user-defined distance function is given, use Euclidean distance
+            if not f:
+                f = self._f_dist
+
+            # calculate the distances for each training observation
+            distances = self.f(x)
+            
+            # sort the training observations by distance
+            knn_indices = np.argsort(distances)[:self.k]
+
+            # average the class membership of the 'k' training indices chosen
+            knn_labels = self.y_train[knn_indices]
+            neighbor_membership = np.sum(knn_labels, axis = 0)
+            predicted_class = np.where(neighbor_membership == max(neighbor_membership))[0] # outputs a tuple, we want first element
+            # pull randomly if there are ties
+            if len(predicted_class) > 1:
+                predicted_class = np.random.choice(predicted_class, 1)
+            
+            return predicted_class
+
+        # Make a prediction for all new observations
+        y_pred = [_predict_single(x, f) for x in X]
+        return np.array(y_pred)
