@@ -43,9 +43,6 @@ class KNNClassifier:
         if self.k > X.shape[0]:
             raise ValueError("Tuning parameter 'k' must be not be greater than number of observations.")
         
-        if y.shape[1] < 2:
-            raise TypeError("Response data 'y' should be encoded as array of 0s and 1s based on class membership.")
-        
         self.X_train = X
         self.y_train = y
 
@@ -83,7 +80,7 @@ class KNNClassifier:
 
             # average the class membership of the 'k' training indices chosen
             knn_labels = self.y_train[knn_indices]
-            neighbor_membership = np.sum(knn_labels, axis = 0)
+            neighbor_membership = np.bincount(knn_labels)
             predicted_class = np.where(neighbor_membership == max(neighbor_membership))[0] # outputs a tuple, we want first element
             # pull randomly if there are ties
             if len(predicted_class) > 1:
