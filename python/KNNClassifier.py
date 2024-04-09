@@ -27,3 +27,7 @@ class KNNClassifier:
     def f_dist(x1, x2):
         # Euclidean distance between x1 and x2
         pass
+
+    def predict(self, X_test, y_test):
+        # Make a prediction for new observations
+        pass
