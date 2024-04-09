@@ -2,7 +2,8 @@
 Python implementation of the K-Nearest Neighbor (KNN) algorithm for classification.
 The KNN classifier predicts the class of a given test observation by identifying 
 training observations that are nearest to it in features space, as defined by some
-valid distance function. The relative scale of each feature matters. 
+valid distance function. The relative scale of each feature matters, so data should
+be appropriately centered and scaled before feeding through this algorithm. 
 """
 import numpy as np
 
@@ -28,14 +29,15 @@ class KNNClassifier:
         Input data 'X' contains all predictive features for each of the training
         observations. The response data 'y' contains encoded representation of the
         member class of each training observation. These objects are stored respectively
-        as 'X_train' and 'y_train' to the classifier object.
+        as 'X_train' and 'y_train' to the classifier object. Predictive features are 
+        scaled using robust scaling that uses the 5th and 95th percentiles rather than 
+        min and max, respectively. 
 
         Args:
             X (numeric array): (n by p) array of input data, consisting of 'p' features and 'n' 
                 observations.
             y (numeric array): (n by q) array of encoded responses, for 'q' output classes encoded to
                 0 (not a member of class) or 1 (member of class), and 'n' observations.
-
         Raises:
             ValueError: If tuning parameter 'k' is larger than number of observations.
             TypeError: If 'y' has only one dimension it is certainly not one-hot encoded appropriately.
@@ -45,7 +47,7 @@ class KNNClassifier:
         
         self.X_train = X
         self.y_train = y
-
+            
     def _f_dist(self, x):
         """Base Euclidean distance function
 
@@ -65,7 +67,7 @@ class KNNClassifier:
         function f. If this function is not supplied, Euclidean Distance is used.
 
         Args:
-            X (numeric array): (m x p) Predictive features for each of 'm' new observations.
+            X (numeric array): (m by p) Predictive features for each of 'm' new observations.
             f (callable): Valid distance function, or 'None'.
         """
 
