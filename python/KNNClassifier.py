@@ -23,7 +23,7 @@ class KNNClassifier:
         
         self.k = k
 
-    def fit(self, X: np.array, y: np.array):
+    def fit(self, X, y):
         """Fitter method for KNNClassifier object.
 
         Input data 'X' contains all predictive features for each of the training
@@ -32,18 +32,19 @@ class KNNClassifier:
         as 'X_train' and 'y_train' to the classifier object.
 
         Args:
-            X: (n by p) array of input data, consisting of 'p' features and 'n' 
+            X (numeric array): (n by p) array of input data, consisting of 'p' features and 'n' 
                 observations.
-            y: (n by q) array of encoded responses, for 'q' output classes encoded to
+            y (numeric array): (n by q) array of encoded responses, for 'q' output classes encoded to
                 0 (not a member of class) or 1 (member of class), and 'n' observations.
 
         Raises:
             ValueError: If tuning parameter 'k' is larger than number of observations.
         """
+        if self.k > X.shape[0]:
+            raise ValueError("Tuning parameter 'k' must be not be greater than number of observations.")
+        
         self.X_train = X
         self.y_train = y
-        # if self.k > n(X_train) then raise ValueError
-        pass
 
     def f_dist(x1, x2):
         # Euclidean distance between x1 and x2
