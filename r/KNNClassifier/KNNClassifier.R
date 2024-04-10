@@ -16,7 +16,7 @@ KNNClassifier <- function(k = 1) {
     if (!is.factor(y)) stop("Reponse classes should be encoded as factors.")
     
     # return predictor function that takes in test observations
-    function(X_test, y_test, ...) {
+    function(X_test, ...) {
       
       # calculate (Euclidean, by default) distances from test observations to training observations
       all_X <- rbind(X, X_test)

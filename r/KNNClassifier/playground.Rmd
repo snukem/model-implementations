@@ -23,16 +23,16 @@ library(mvtnorm)
 set.seed(314)
 
 # samples per group
-n_samples <- 50
+n_samples <- 100
 # add some weird behavior within a group
-n_diff <- 15
+n_diff <- 30
 
-# define covariance matrices
+# define covariance matrices; one group is much more variable and correlated
 sig2 <- 1
 S <- list(
   s1 = sig2*matrix(c(1, 0.4, 0.4, 1), ncol = 2),
   s2 = sig2*matrix(c(1, 0.6, 0.6, 1), ncol = 2),
-  s3 = sig2*matrix(c(1, -0.5, -0.5, 1), ncol = 2)
+  s3 = sig2*matrix(c(3, -0.8, -0.8, 3), ncol = 2)
 )
 
 # randomly draw from different MVN distributions for each group
@@ -44,7 +44,7 @@ X2 <- rbind(
   rmvnorm(n_samples - n_diff, mean = c(0, 0), sigma = S$s2),
   rmvnorm(n_diff, mean = c(-2, -4), sigma = S$s2)
 )
-X3 <- rmvnorm(n_samples, mean = c(-2, -2), sigma = S$s3)
+X3 <- rmvnorm(n_samples, mean = c(-2, 0), sigma = S$s3)
 
 # combine data
 X <- rbind(X1, X2, X3)
@@ -60,8 +60,8 @@ The scatter plot below demonstrates the nature the of the simulated data.
 library(scales)
 plot(X, col = alpha(dat$y, 0.5), pch = 19, xlab = "Feature 1", ylab = "Feature 2",
      main = "Simulated Class Membership Data", cex = 1.25)
-legend('topleft', bty = 'n', legend = c("Class 1", "Class 2", "Class 3"),
-       col = alpha(c("steelblue", "orange2", "forestgreen"), 0.5), pch = 19, cex = 1.25)
+legend('bottomright', bty = 'n', legend = c("Class 1", "Class 2", "Class 3"),
+       col = alpha(c("steelblue", "orange2", "forestgreen"), 0.5), pch = 19)
 ```
 
 ## Data Preparation
@@ -70,5 +70,74 @@ For this example I convert the response variable to a factor, since that is how 
 programmed the functions to work, and this is common for treatment of categorical
 outcomes in other libraries. I split the full data set `dat` into `dat_train` and 
 `dat_test` with a 80/20 split, respectively. I center and scale the predictive
-features before feeding the data into the classifier.
+features before feeding the data into the classifier. 
+
+It is important to note that normalization of the all data must be done as if the
+training data were the only observations available. Thus I define a "scaler" that
+operates with the sample statistics only from `dat_train`.
+
+```{r}
+dat$y <- as.factor(dat$y)
+
+train_index <- sample(nrow(dat), size = 0.8*nrow(dat), replace = FALSE)
+
+dat_train <- dat[train_index,]
+
+# output a function that has training data stats in scope
+Scaler <- function(x_train) {
+  m_center <- colMeans(x_train)
+  m_scale <- apply(x_train, 2, sd)
+  function(X) {
+    X_scaled <- X
+    for (i in 1:ncol(X)) {
+      X_scaled[i] <- (X[i] - m_center[i]) / m_scale[i] 
+    }
+    X_scaled
+  }
+}
+
+scaler <- Scaler(dat_train[, 1:2])
+
+dat_test <- dat[-train_index,]
+
+# scaled feature matrices
+X_test_scaled <- scaler(dat_test[,1:2])
+X_train_scaled <- scaler(dat_train[,1:2])
+
+# split response vectors
+y_train <- dat_train$y
+y_test <- dat_test$y
+```
+
+## Model Fitting
+
+Before we go ahead and find a more "optimal" value for `k`, lets just take a look
+at the functionality defined in `KNNClassifier.R`.
+
+```{r}
+source("KNNClassifier.R")
+k <- 3
+knn_classifier <- KNNClassifier(k)
+
+knn_fit <- knn_classifier(X = X_train_scaled, y = y_train)
+
+yhat <- knn_fit(X_test_scaled)
+test_accuracy <- mean(yhat == y_test)
+print(paste0("The model's test accuracy for k=", k, " was ", round(test_accuracy*100, 2), "%."))
+```
+
+## Model Performance Assessment
+
+Now let's iterate through different values of `k` to see if any improvements can 
+be made, and use the average of each class's *F1* score as our performance metric.
+
+```{r}
+f1_class <- function(y_true, y_pred) {
+  
+  
+  precision <- 
+  
+  (2 * precision * recall) / (precision + recall)
+}
+```
 
