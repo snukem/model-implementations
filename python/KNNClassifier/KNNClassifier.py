@@ -29,9 +29,8 @@ class KNNClassifier:
         Input data 'X' contains all predictive features for each of the training
         observations. The response data 'y' contains encoded representation of the
         member class of each training observation. These objects are stored respectively
-        as 'X_train' and 'y_train' to the classifier object. Predictive features are 
-        scaled using robust scaling that uses the 5th and 95th percentiles rather than 
-        min and max, respectively. 
+        as 'X_train' and 'y_train' to the classifier object. Predictive features should be 
+        centered and scaled before fitting. 
 
         Args:
             X (numeric array): (n by p) array of input data, consisting of 'p' features and 'n' 
@@ -40,8 +39,8 @@ class KNNClassifier:
                 0 (not a member of class) or 1 (member of class), and 'n' observations.
         Raises:
             ValueError: If tuning parameter 'k' is larger than number of observations.
-            TypeError: If 'y' has only one dimension it is certainly not one-hot encoded appropriately.
         """
+
         if self.k > X.shape[0]:
             raise ValueError("Tuning parameter 'k' must be not be greater than number of observations.")
         
@@ -64,11 +63,10 @@ class KNNClassifier:
 
         For each new observation in 'X', predict class membership based on the most common
         membership of its 'k' nearest neighbors, where nearness is measured by a distance
-        function f. If this function is not supplied, Euclidean Distance is used.
+        function. Euclidean Distance is used.
 
         Args:
             X (numeric array): (m by p) Predictive features for each of 'm' new observations.
-            f (callable): Valid distance function, or 'None'.
         """
 
         # helper function to predict for a single observation
