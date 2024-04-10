@@ -1,5 +1,5 @@
 ---
-title: "playground"
+title: "KNN Classifier Playground"
 output: html_document
 date: "2024-04-10"
 ---
@@ -8,22 +8,67 @@ date: "2024-04-10"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Simulate Data for Exploration
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+For exploration of the the usage of the `KNNClassifier` functionality, I simulate
+a data set that is easy to visualize, but that contains irregularities that would usually
+necessitate the use of a flexible classifier like the KNN algorithm. The response
+variable contains three classes, and the distributions for the two features measured
+on each observation within each group is a multivariate normal.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+```{r}
+library(mvtnorm)
 
-```{r cars}
-summary(cars)
+# set seed for reproducibility
+set.seed(314)
+
+# samples per group
+n_samples <- 50
+# add some weird behavior within a group
+n_diff <- 15
+
+# define covariance matrices
+sig2 <- 1
+S <- list(
+  s1 = sig2*matrix(c(1, 0.4, 0.4, 1), ncol = 2),
+  s2 = sig2*matrix(c(1, 0.6, 0.6, 1), ncol = 2),
+  s3 = sig2*matrix(c(1, -0.5, -0.5, 1), ncol = 2)
+)
+
+# randomly draw from different MVN distributions for each group
+X1 <- rbind(
+  rmvnorm(n_samples - n_diff, mean = c(2, 2), sigma = S$s1),
+  rmvnorm(n_diff, mean = c(-4, -4), sigma = S$s1)
+)
+X2 <- rbind(
+  rmvnorm(n_samples - n_diff, mean = c(0, 0), sigma = S$s2),
+  rmvnorm(n_diff, mean = c(-2, -4), sigma = S$s2)
+)
+X3 <- rmvnorm(n_samples, mean = c(-2, -2), sigma = S$s3)
+
+# combine data
+X <- rbind(X1, X2, X3)
+y <- c(rep("steelblue", n_samples), rep("orange2", n_samples), rep("forestgreen", n_samples))
+
+dat <- data.frame(X, y)
+
 ```
 
-## Including Plots
+The scatter plot below demonstrates the nature the of the simulated data.
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+library(scales)
+plot(X, col = alpha(dat$y, 0.5), pch = 19, xlab = "Feature 1", ylab = "Feature 2",
+     main = "Simulated Class Membership Data", cex = 1.25)
+legend('topleft', bty = 'n', legend = c("Class 1", "Class 2", "Class 3"),
+       col = alpha(c("steelblue", "orange2", "forestgreen"), 0.5), pch = 19, cex = 1.25)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Data Preparation
+
+For this example I convert the response variable to a factor, since that is how I
+programmed the functions to work, and this is common for treatment of categorical
+outcomes in other libraries. I split the full data set `dat` into `dat_train` and 
+`dat_test` with a 80/20 split, respectively. I center and scale the predictive
+features before feeding the data into the classifier.
+
