@@ -23,28 +23,32 @@ library(mvtnorm)
 set.seed(314)
 
 # samples per group
-n_samples <- 100
+n_samples <- 500
 # add some weird behavior within a group
-n_diff <- 30
+n_diff <- 200
 
 # define covariance matrices; one group is much more variable and correlated
 sig2 <- 1
 S <- list(
-  s1 = sig2*matrix(c(1, 0.4, 0.4, 1), ncol = 2),
-  s2 = sig2*matrix(c(1, 0.6, 0.6, 1), ncol = 2),
-  s3 = sig2*matrix(c(3, -0.8, -0.8, 3), ncol = 2)
+  s1 = sig2*matrix(c(1, -0.5, -0.5, 1), ncol = 2),
+  s2 = sig2*matrix(c(1, 0.2, 0.2, 1), ncol = 2),
+  s3 = sig2*matrix(c(3, -0.2, -0.2, 3), ncol = 2)
 )
 
 # randomly draw from different MVN distributions for each group
 X1 <- rbind(
-  rmvnorm(n_samples - n_diff, mean = c(2, 2), sigma = S$s1),
-  rmvnorm(n_diff, mean = c(-4, -4), sigma = S$s1)
+  rmvnorm(n_samples - n_diff, mean = c(1, 2), sigma = S$s1),
+  rmvnorm(n_diff, mean = c(-4, -5), sigma = S$s1)
 )
 X2 <- rbind(
-  rmvnorm(n_samples - n_diff, mean = c(0, 0), sigma = S$s2),
-  rmvnorm(n_diff, mean = c(-2, -4), sigma = S$s2)
+  rmvnorm(n_samples - n_diff, mean = c(0, 1), sigma = S$s2),
+  rmvnorm(n_diff, mean = c(-2, -3), sigma = S$s2)
 )
-X3 <- rmvnorm(n_samples, mean = c(-2, 0), sigma = S$s3)
+X3 <- rbind(
+  rmvnorm(n_samples - n_diff, mean = c(-5, 0), sigma = S$s3),
+  rmvnorm(n_diff, mean = c(2, -4), sigma = S$s3)
+)
+
 
 # combine data
 X <- rbind(X1, X2, X3)
@@ -116,13 +120,13 @@ at the functionality defined in `KNNClassifier.R`.
 
 ```{r}
 source("KNNClassifier.R")
-k <- 3
+k <- 1
 knn_classifier <- KNNClassifier(k)
 
 knn_fit <- knn_classifier(X = X_train_scaled, y = y_train)
 
-yhat <- knn_fit(X_test_scaled)
-test_accuracy <- mean(yhat == y_test)
+y_hat <- knn_fit(X_test_scaled)
+test_accuracy <- mean(y_hat == y_test)
 print(paste0("The model's test accuracy for k=", k, " was ", round(test_accuracy*100, 2), "%."))
 ```
 
@@ -132,12 +136,55 @@ Now let's iterate through different values of `k` to see if any improvements can
 be made, and use the average of each class's *F1* score as our performance metric.
 
 ```{r}
-f1_class <- function(y_true, y_pred) {
+# F1 scores for all classes
+f1_scores <- function(y_pred) {
+  classes <- as.character(unique(dat$y))
+  f1 <- numeric(length(classes))
   
+  # calculate f1 for each output class
+  for (i in 1:length(classes)) {
+    z <- classes[i]
+    
+    TP <- sum(y_pred[y_test == z] == z)
+    FN <- sum(y_pred[y_test == z] != z)
+    FP <- sum(y_pred[y_test != z] == z)
   
-  precision <- 
+    recall <- TP / (TP + FN)
+    precision <- TP / (TP + FP)
   
-  (2 * precision * recall) / (precision + recall)
+    f1[i] <- (2 * precision * recall) / (precision + recall)
+  }
+  f1
 }
+
+k_values <- 1:100
+f1_score_means <- numeric(length(k_values))
+
+# for each unique value of k
+for (i in k_values) {
+  # define the classifier
+  knn_classifier <- KNNClassifier(i)
+  
+  # fit to the (scaled) training data
+  knn_fit <- knn_classifier(X = X_train_scaled, y = y_train)
+
+  # predict on out-of-sample (scaled) data
+  y_hat <- knn_fit(X_test_scaled)
+  
+  # calculate average f1 score
+  f1_score_means[i] <- mean(f1_scores(y_hat))
+}
+
 ```
 
+The plot below illustrates how the model's predictive performance changes with different
+values of `k`.
+
+```{r}
+plot(k_values, f1_score_means, main = "Average F1 by K", xlab = "k", 
+     ylab = "Average F1", type = "l")
+```
+
+It appears that there are diminishing returns in model performance after `k` is 
+approximately in range of `r which.max(f1_score_means) - 2` to `r which.max(f1_score_means) + 2`. Values of `k > 20` experiences a performance plateau and eventual drop-off. I would recommend a value 
+of `k=10` based on the evaluation above.
