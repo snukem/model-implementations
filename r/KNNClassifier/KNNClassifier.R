@@ -40,7 +40,7 @@ KNNClassifier <- function(k = 1) {
         y_hat[i-n] <- predicted_class
       }
       
-      list(y_hat = y_hat, 
+      y_hat
     }
   }
 }
